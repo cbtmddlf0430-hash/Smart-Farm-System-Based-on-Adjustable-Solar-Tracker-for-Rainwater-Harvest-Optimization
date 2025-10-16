@@ -1,0 +1,94 @@
+import time
+ import numpy as np
+ import matplotlib
+ matplotlib.rc('font', family='Malgun Gothic')
+ import matplotlib.pyplot as plt
+ from tensorflow.keras.models import Sequential
+ from tensorflow.keras.layers import LSTM, Dense
+ from sklearn.preprocessing import MinMaxScaler
+ from math import isnan
+ import serial
+ # ─── 설정 ──────────────────────────────
+ 
+ WINDOW_SIZE = 10
+ MAX_POINTS  = 50
+ PORT = 'COM6'
+ BAUD = 9600
+ # ────────────────────────────────────
+ 
+ser = serial.Serial(PORT, BAUD, timeout=1)
+ time.sleep(2)
+ print("▶ 시리얼 모드: 아두이노 데이터를 기다립니다.")
+ history = []
+ predictions = []
+ scaler = MinMaxScaler(feature_range=(0, 1))
+ model = None
+ plt.ion()
+ fig, ax = plt.subplots()
+ line_act, = ax.plot([], [], '-o', label='Actual')
+ line_prd, = ax.plot([], [], '--x', label='Predicted')
+ ax.set_xlabel('샘플 인덱스')
+ ax.set_ylabel('습도 (%)')
+ ax.set_ylim(0, 100)
+ ax.legend()
+ fig.tight_layout()
+ plt.show(block=False)
+ def update_plot():
+    xs = range(len(history))
+    xs = xs[-MAX_POINTS:]
+    line_act.set_data(xs, history[-MAX_POINTS:])
+    line_prd.set_data(xs, predictions[-MAX_POINTS:])
+    ax.set_xlim(max(0, len(history)-MAX_POINTS), len(history))
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+ def train_lstm(data):
+    global model, scaler
+    scaler = MinMaxScaler()
+    scaled = scaler.fit_transform(np.array(data).reshape(-1, 1))
+    X, y = [], []
+    for i in range(len(scaled) - WINDOW_SIZE):
+
+        X.append(scaled[i:i+WINDOW_SIZE])
+        y.append(scaled[i+WINDOW_SIZE])
+    X, y = np.array(X), np.array(y)
+    model = Sequential([
+        LSTM(32, input_shape=(WINDOW_SIZE, 1)),
+        Dense(1)
+    ])
+    model.compile(loss='mse', optimizer='adam')
+    model.fit(X, y, epochs=20, batch_size=1, verbose=0)
+ def predict_lstm(latest_sequence):
+    if not model:
+        return float('nan')
+    scaled_seq = scaler.transform(np.array(latest_sequence).reshape(-1, 1))
+    input_data = np.array(scaled_seq[-WINDOW_SIZE:]).reshape(1, 
+WINDOW_SIZE, 1)
+    pred_scaled = model.predict(input_data, verbose=0)
+    return scaler.inverse_transform(pred_scaled)[0][0]
+ while True:
+    try:
+        line = ser.readline().decode().strip()
+        if not line:
+            continue
+        h = float(line)
+    except:
+        print("⚠ 숫자 변환 실패:", line)
+        continue
+    history.append(h)
+    if len(history) > WINDOW_SIZE + 10:
+        train_lstm(history)
+        pred = predict_lstm(history[-WINDOW_SIZE:])
+    else:
+pred = float('nan')
+ predictions.append(pred)
+ disp = f"[{len(history):3d}] 현재: {h:.1f}%"
+ if not isnan(pred):
+ disp += f"  예측: {pred:.1f}%"
+ if pred > 60:
+ disp += " →  습도 낮습니다. 식물에게 물을 공급해야 합니다."
+ else:
+ disp += " → 습도가 높습니다."
+ else:
+ disp += "  예측: --"
+ print(disp)
+ update_plot()

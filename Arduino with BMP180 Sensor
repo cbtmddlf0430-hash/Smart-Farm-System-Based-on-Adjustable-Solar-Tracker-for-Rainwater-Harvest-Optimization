@@ -1,0 +1,27 @@
+Arduino with BMP180 Sensor#include <Wire.h>
+#include <Adafruit_BMP085.h>
+
+Adafruit_BMP085 bmp;
+
+void setup() {
+  Serial.begin(9600);
+  
+  if (!bmp.begin()) {
+    Serial.println("BMP180 센서를 찾을 수 없습니다. 연결을 확인하세요.");
+    while (1); // 멈춤
+  }
+
+  Serial.println("BMP180 센서가 정상적으로 연결되었습니다.");
+}
+
+void loop() {
+  Serial.print("기압: ");
+  Serial.print(bmp.readPressure() / 100.0); // Pa → hPa
+  Serial.println(" hPa");
+
+  Serial.print("온도: ");
+  Serial.print(bmp.readTemperature());
+  Serial.println(" C");
+
+  delay(1000);
+} 

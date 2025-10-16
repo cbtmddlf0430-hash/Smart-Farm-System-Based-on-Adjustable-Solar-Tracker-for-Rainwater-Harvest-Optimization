@@ -1,0 +1,52 @@
+#include <DHT.h>
+#include <Servo.h>
+
+// DHT 센서 설정
+#define DHTPIN 2       // DHT 센서 연결 핀
+#define DHTTYPE DHT11  // 센서 타입 (DHT11)
+
+// 서보 모터 설정
+#define SERVO_PIN 9    // 서보 모터 핀
+
+// 객체 생성
+DHT dht(DHTPIN, DHTTYPE);
+Servo myServo;
+bool isAt60 = false; // 모터가 현재 60도인지 여부
+
+void setup() {
+    Serial.begin(9600);  // 시리얼 통신 시작
+    dht.begin();         // DHT 센서 초기화
+    myServo.attach(SERVO_PIN);
+    myServo.write(0);    // 초기 위치를 0도로 설정
+}
+
+void loop() {
+    float humidity = dht.readHumidity(); // 습도 값 읽기
+
+    // 센서 값이 정상인지 확인
+    if (isnan(humidity)) {
+        Serial.println("Failed to read from DHT sensor!");
+        return;
+    }
+
+    // 시리얼 모니터에 현재 습도 출력
+    Serial.print("Humidity: ");
+    Serial.print((int)humidity);
+    Serial.println(" %");
+
+    // 습도가 50% 이상이면 60도 이동 (한 번만 실행)
+    if (humidity >= 55 && !isAt60) {
+        Serial.println("습도 55% 초과! 모터 60도 이동 후 유지");
+        myServo.write(60);
+        isAt60 = true;
+    }
+
+    // 습도가 40% 이하이면 다시 0도로 이동 (한 번만 실행)
+    if (humidity <= 45 && isAt60) {
+        Serial.println("습도 45% 이하! 모터 원위치(0도)로 이동 후 유지");
+        myServo.write(0);
+        isAt60 = false;
+    }
+
+    delay(2000); // 2초마다 습도 체크
+}

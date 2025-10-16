@@ -1,4 +1,7 @@
 # Smart-Farm-System-Based-on-Adjustable-Solar-Tracker-for-Rainwater-Harvest-Optimization
+
+제목 :　가변형　태양광　트래커　기반의　빗물　집수　극대화　스마트팜
+
 □ 개발목적
 
 본 프로젝트는 단순한 빗물 저장을 넘어 실제 강우 시 공간을 능동적으로 활용할 수 있는 스마트 빗물받이 구조를 고안하였다. 태양광 패널을 결합해 맑은 날에는 발전, 비 오는 날에는 빗물 수집이 가능한 이중 기능 구조로 설계하였다.
